@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DFIR CTF — Operation: Silent Exit</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+  --border:#30363d;--border2:#484f58;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --accent:#58a6ff;--accent2:#1f6feb;
+  --green:#3fb950;--red:#f85149;--orange:#d29922;--purple:#a371f7;
+  --teal:#39d353;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+.shell{max-width:720px;margin:0 auto;padding:0 1rem 3rem}
+
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;margin-bottom:1.5rem}
+.tb-brand{display:flex;align-items:center;gap:10px}
+.tb-logo{width:36px;height:36px;background:var(--accent2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;letter-spacing:-1px}
+.tb-name{font-size:14px;font-weight:600}
+.tb-sub{font-size:11px;color:var(--text2)}
+.tb-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:rgba(88,166,255,.15);color:var(--accent);border:1px solid rgba(88,166,255,.3)}
+
+.hero{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:2rem 1.75rem 1.75rem;margin-bottom:1rem}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
+.hero-title{font-size:22px;font-weight:700;line-height:1.3;margin-bottom:.35rem}
+.hero-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.5rem}
+.stat{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:.75rem .5rem;text-align:center}
+.stat-icon{font-size:18px;color:var(--accent);margin-bottom:3px}
+.stat-val{font-size:16px;font-weight:700}
+.stat-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+
+.scenario-box{background:rgba(163,113,247,.07);border:1px solid rgba(163,113,247,.25);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.scenario-title{font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem}
+.scenario-body{font-size:13px;color:var(--text2);line-height:1.65}
+.scenario-body strong{color:var(--text)}
+
+.rules-box{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.2);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.rules-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.6rem;display:flex;align-items:center;gap:6px}
+.rules-list{list-style:none}
+.rules-list li{font-size:12.5px;color:var(--text2);display:flex;align-items:flex-start;gap:8px;line-height:1.5;margin-bottom:5px}
+.rules-list li::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px}
+.rules-list strong{color:var(--text)}
+
+.coverage-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem}
+.cov-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.6rem .875rem;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.cov-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+.form-group{margin-bottom:.875rem}
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.875rem}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-label .req{color:var(--red)}
+input[type=text],input[type=email],input[type=tel],select{width:100%;padding:8px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);height:38px;outline:none;transition:border-color .15s}
+input:focus,select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(31,111,235,.15)}
+select option{background:var(--bg3);color:var(--text)}
+.agree-row{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:1.25rem}
+.agree-row input{width:15px;height:15px;flex-shrink:0;margin-top:2px;cursor:pointer;accent-color:var(--accent)}
+.agree-row label{font-size:12px;color:var(--text2);line-height:1.6;cursor:pointer}
+.err-msg{font-size:11px;color:var(--red);margin-top:4px;display:none}
+
+.btn-cta{width:100%;padding:12px;font-size:15px;font-weight:700;background:var(--accent2);color:#fff;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.btn-cta:hover{background:#1158cc}
+.btn-cta:disabled{opacity:.4;cursor:not-allowed}
+
+/* EXAM */
+.exam-bar{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.875rem 1.25rem;margin-bottom:.875rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.ex-left{display:flex;flex-direction:column;gap:3px}
+.ex-title{font-size:13px;font-weight:600}
+.ex-meta{font-size:12px;color:var(--text2)}
+.timer-wrap{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 12px}
+.timer-val{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;min-width:52px}
+.viol-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.3)}
+
+.pbar-track{height:3px;background:var(--bg3);border-radius:2px;margin-bottom:.875rem;overflow:hidden}
+.pbar-fill{height:3px;background:var(--accent);border-radius:2px;transition:width .3s}
+
+.q-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:.875rem}
+.q-meta-row{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap}
+.q-phase{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--purple);padding:2px 8px;background:rgba(163,113,247,.1);border-radius:4px;border:1px solid rgba(163,113,247,.2)}
+.q-tool{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--teal);padding:2px 8px;background:rgba(57,211,83,.08);border-radius:4px;border:1px solid rgba(57,211,83,.2)}
+.q-diff{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:2px 8px;border-radius:4px}
+.q-diff.basic{color:var(--green);background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2)}
+.q-diff.intermediate{color:var(--orange);background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.2)}
+.q-diff.applied{color:var(--red);background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2)}
+.q-count{font-size:11px;color:var(--text3);margin-bottom:.875rem}
+.q-scenario{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:0 8px 8px 0;padding:.875rem 1rem;margin-bottom:1.1rem;font-size:12.5px;color:var(--text2);line-height:1.7;font-family:'Courier New',monospace}
+.q-text{font-size:15px;font-weight:500;line-height:1.65;margin-bottom:1.25rem;color:var(--text)}
+.options{display:flex;flex-direction:column;gap:7px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;line-height:1.55;color:var(--text2);background:var(--bg3);transition:all .12s;user-select:none}
+.opt:hover{border-color:var(--border2);background:var(--bg4);color:var(--text)}
+.opt.sel{border-color:var(--accent2);background:rgba(31,111,235,.12);color:var(--accent)}
+.opt-letter{width:22px;height:22px;border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;border:1px solid var(--border2);color:var(--text2);margin-top:1px}
+.opt.sel .opt-letter{background:var(--accent2);border-color:var(--accent2);color:#fff}
+
+.q-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem}
+.btn-nav{padding:7px 16px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .12s}
+.btn-nav:hover{border-color:var(--border2);color:var(--text)}
+.btn-nav:disabled{opacity:.3;cursor:not-allowed}
+.q-pos-lbl{font-size:12px;color:var(--text3)}
+
+.qnav-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.875rem}
+.qnav-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.75rem}
+.dot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:5px;margin-bottom:.875rem}
+.dot{width:34px;height:34px;border-radius:7px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:all .1s}
+.dot:hover{border-color:var(--border2)}
+.dot.ans{background:rgba(63,185,80,.12);border-color:rgba(63,185,80,.35);color:var(--green)}
+.dot.cur{border:2px solid var(--accent);color:var(--accent);background:rgba(88,166,255,.1)}
+.btn-submit-exam{width:100%;padding:10px;font-size:13px;font-weight:700;background:var(--green);color:#0d1117;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .12s;letter-spacing:.3px}
+.btn-submit-exam:hover{opacity:.85}
+
+/* RESULT */
+.result-hero{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:2rem;text-align:center;margin-bottom:.875rem}
+.r-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:1rem;text-transform:uppercase;letter-spacing:.6px}
+.r-badge.pass{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3)}
+.r-badge.fail{background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.3)}
+.r-score{font-size:52px;font-weight:800;line-height:1;margin-bottom:.25rem}
+.r-pct{font-size:18px;font-weight:600;margin-bottom:.5rem}
+.r-sub{font-size:13px;color:var(--text2)}
+.r-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:1.25rem}
+.r-stat{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.75rem;text-align:center}
+.r-stat-val{font-size:22px;font-weight:700}
+.r-stat-lbl{font-size:11px;color:var(--text2);margin-top:2px}
+
+.detail-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:.875rem}
+.detail-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.875rem;display:flex;align-items:center;gap:6px}
+.d-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.d-row:last-child{border:none}
+.d-lbl{color:var(--text2)}
+.d-val{font-weight:600}
+
+.breakdown-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:.875rem}
+.breakdown-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.breakdown-row:last-child{border:none}
+.breakdown-topic{color:var(--text2)}
+.breakdown-score{font-weight:600;font-size:13px}
+.breakdown-bar-wrap{flex:1;margin:0 12px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.breakdown-bar{height:4px;border-radius:2px;background:var(--accent)}
+
+.notice{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25);border-radius:8px;padding:.75rem 1rem;font-size:12px;color:var(--orange);margin-bottom:.875rem;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.ans-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:.875rem}
+.as-row{display:grid;grid-template-columns:28px 1fr 75px;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:start}
+.as-row:last-child{border:none}
+.as-num{font-weight:700;color:var(--text3)}
+.as-q{color:var(--text2);line-height:1.4}
+.tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;text-align:center;white-space:nowrap}
+.tag-a{background:rgba(88,166,255,.12);color:var(--accent);border:1px solid rgba(88,166,255,.3)}
+.tag-s{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:1rem}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:1.5rem;max-width:400px;width:100%}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:.5rem}
+.modal-body{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.6}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.btn-ghost{padding:8px 16px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:8px;background:var(--bg3);cursor:pointer;color:var(--text2)}
+.btn-ghost:hover{border-color:var(--border2)}
+.btn-primary{padding:8px 16px;font-size:13px;font-weight:700;background:var(--accent2);color:#fff;border:none;border-radius:8px;cursor:pointer}
+.btn-primary:hover{background:#1158cc}
+.btn-danger{padding:8px 16px;font-size:13px;font-weight:700;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer}
+
+.footer{text-align:center;font-size:11px;color:var(--text3);margin-top:2rem;line-height:1.9;padding-bottom:1rem}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="sc-landing">
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">DF</div>
+    <div><div class="tb-name">DFIR CTF Academy</div><div class="tb-sub">Digital Forensics Training</div></div>
+  </div>
+  <span class="tb-badge"><i class="ti ti-shield" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Beginner &rarr; Intermediate</span>
+</div>
+<div class="shell">
+<div class="hero">
+  <div class="hero-eyebrow"><i class="ti ti-microscope" style="font-size:11px;vertical-align:-1px;margin-right:5px"></i>Operation: Silent Exit</div>
+  <div class="hero-title">DFIR CTF — Digital Forensics Assessment</div>
+  <div class="hero-sub">NovaTech Solutions Insider Threat Investigation &nbsp;·&nbsp; DFIR CTF Academy</div>
+
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-icon"><i class="ti ti-file-text"></i></div><div class="stat-val">25</div><div class="stat-lbl">Questions</div></div>
+    <div class="stat"><div class="stat-icon"><i class="ti ti-clock"></i></div><div class="stat-val">40 min</div><div class="stat-lbl">Duration</div></div>
+    <div class="stat"><div class="stat-icon"><i class="ti ti-target"></i></div><div class="stat-val">60%</div><div class="stat-lbl">Pass mark</div></div>
+    <div class="stat"><div class="stat-icon"><i class="ti ti-refresh"></i></div><div class="stat-val">Random</div><div class="stat-lbl">Each session</div></div>
+  </div>
+
+  <div class="scenario-box">
+    <div class="scenario-title"><i class="ti ti-file-alert" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Case Brief — Operation: Silent Exit</div>
+    <div class="scenario-body">
+      <strong>NovaTech Solutions</strong>, Austin, Texas. Senior developer <strong>Alex Mercer</strong> resigned on <strong>14 March 2024</strong>. Days later, a competitor released a product suspiciously similar to NovaTech's unreleased software. IT Security has imaged his workstation <strong>NOVATECH-WS042</strong> (Windows 10 Pro) and collected browser artifacts, registry hives, and event logs. <strong>You are the assigned forensic analyst.</strong>
+    </div>
+  </div>
+
+  <div class="coverage-grid">
+    <div class="cov-item"><span class="cov-dot" style="background:var(--accent)"></span>DF Concepts &amp; Principles (60%)</div>
+    <div class="cov-item"><span class="cov-dot" style="background:var(--green)"></span>Tool-Based: FTK Imager (40%)</div>
+    <div class="cov-item"><span class="cov-dot" style="background:var(--purple)"></span>Acquisition to Reporting</div>
+    <div class="cov-item"><span class="cov-dot" style="background:var(--teal)"></span>Tool-Based: Autopsy &amp; EZ Tools</div>
+  </div>
+
+  <div class="rules-box">
+    <div class="rules-title"><i class="ti ti-alert-triangle" style="font-size:14px"></i>Exam rules</div>
+    <ul class="rules-list">
+      <li>25 questions drawn randomly from a bank of 60 &nbsp;·&nbsp; <strong>different every session</strong></li>
+      <li>40 minutes &nbsp;·&nbsp; 1 mark each &nbsp;·&nbsp; <strong>no negative marking</strong> &nbsp;·&nbsp; 60% to pass</li>
+      <li>Tab switching = <strong>violation</strong> &mdash; 3 violations triggers auto-submit</li>
+      <li>Right-click and copy/paste are <strong>disabled</strong> during the exam</li>
+      <li>Options are <strong>shuffled randomly</strong> — no patterns to exploit</li>
+    </ul>
+  </div>
+
+  <hr style="border:none;border-top:1px solid var(--border);margin-bottom:1.25rem">
+
+  <div class="form-group">
+    <label class="form-label"><i class="ti ti-mail" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Email address<span class="req"> *</span></label>
+    <input type="email" id="inp-email" placeholder="you@example.com" autocomplete="off">
+    <div class="err-msg" id="err-email">Please enter a valid email address.</div>
+  </div>
+  <div class="form-group">
+    <label class="form-label"><i class="ti ti-user" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Full name<span class="req"> *</span></label>
+    <input type="text" id="inp-name" placeholder="Your full name" autocomplete="off">
+  </div>
+  <div class="form-2col">
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label"><i class="ti ti-id-badge" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Student / Roll ID<span class="req"> *</span></label>
+      <input type="text" id="inp-roll" placeholder="CS2024001">
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label"><i class="ti ti-building" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Department<span class="req"> *</span></label>
+      <select id="inp-dept">
+        <option value="">Select department</option>
+        <option>B.Tech &ndash; CSE (Cybersecurity)</option>
+        <option>B.Tech &ndash; CSE (AI &amp; ML)</option>
+        <option>B.Tech &ndash; CSE</option>
+        <option>B.Tech &ndash; IT</option>
+        <option>B.Tech &ndash; ECE</option>
+        <option>M.Tech &ndash; Cybersecurity</option>
+        <option>M.Tech &ndash; CS</option>
+        <option>Diploma &ndash; IT/CS</option>
+        <option>Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group" style="margin-top:.875rem">
+    <label class="form-label"><i class="ti ti-phone" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Phone number</label>
+    <input type="tel" id="inp-phone" placeholder="+91 98765 43210">
+  </div>
+
+  <div class="agree-row">
+    <input type="checkbox" id="chk-agree">
+    <label for="chk-agree">I have read and agree to the exam rules. I will not use any unfair means, external resources, or AI tools during this assessment. I understand violations are automatically recorded.</label>
+  </div>
+  <button class="btn-cta" id="btn-start" disabled><i class="ti ti-player-play"></i> Begin DFIR Assessment</button>
+</div>
+<div class="footer">DFIR CTF Academy &nbsp;&middot;&nbsp; Operation: Silent Exit &nbsp;&middot;&nbsp; NovaTech Solutions Case<br>60-question bank &nbsp;&middot;&nbsp; 25 random per session &nbsp;&middot;&nbsp; Anti-cheat active</div>
+</div>
+</div>
+
+<!-- EXAM -->
+<div id="sc-exam" class="hidden">
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">DF</div>
+    <div>
+      <div class="tb-name">Operation: Silent Exit &mdash; DFIR Assessment</div>
+      <div class="tb-sub" id="ex-answered">0 of 25 answered</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="viol-pill" id="viol-pill"><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>0 / 3 violations</span>
+    <div class="timer-wrap"><i class="ti ti-clock" style="font-size:16px;color:var(--text2)"></i><span class="timer-val" id="timer-val">40:00</span></div>
+  </div>
+</div>
+<div class="shell">
+  <div class="pbar-track"><div class="pbar-fill" id="pbar" style="width:4%"></div></div>
+  <div class="q-card">
+    <div class="q-meta-row">
+      <span class="q-phase" id="q-phase"></span>
+      <span class="q-tool hidden" id="q-tool"></span>
+      <span class="q-diff" id="q-diff"></span>
+    </div>
+    <div class="q-count" id="q-count"></div>
+    <div class="q-scenario hidden" id="q-scenario"></div>
+    <div class="q-text" id="q-text"></div>
+    <div class="options" id="q-opts"></div>
+  </div>
+  <div class="q-nav">
+    <button class="btn-nav" id="btn-prev"><i class="ti ti-arrow-left"></i> Prev</button>
+    <span class="q-pos-lbl" id="q-pos"></span>
+    <button class="btn-nav" id="btn-next">Next <i class="ti ti-arrow-right"></i></button>
+  </div>
+  <div class="qnav-card">
+    <div class="qnav-label">Quick navigation &mdash; green = answered</div>
+    <div class="dot-grid" id="dot-grid"></div>
+    <button class="btn-submit-exam" id="btn-submit-exam"><i class="ti ti-send"></i> Submit exam</button>
+  </div>
+</div>
+</div>
+
+<!-- RESULT -->
+<div id="sc-result" class="hidden">
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">DF</div>
+    <div><div class="tb-name">DFIR CTF Academy</div><div class="tb-sub">Assessment complete</div></div>
+  </div>
+  <span class="tb-badge"><i class="ti ti-check" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Submitted</span>
+</div>
+<div class="shell">
+  <div class="result-hero">
+    <div class="r-badge" id="res-badge"></div>
+    <div class="r-score" id="res-score"></div>
+    <div class="r-pct" id="res-pct"></div>
+    <div class="r-sub">Operation: Silent Exit &nbsp;&middot;&nbsp; NovaTech Solutions DFIR CTF</div>
+    <div class="r-stats">
+      <div class="r-stat"><div class="r-stat-val" id="rs-cor" style="color:var(--green)"></div><div class="r-stat-lbl">Correct</div></div>
+      <div class="r-stat"><div class="r-stat-val" id="rs-wro" style="color:var(--red)"></div><div class="r-stat-lbl">Incorrect</div></div>
+      <div class="r-stat"><div class="r-stat-val" id="rs-ski" style="color:var(--text2)"></div><div class="r-stat-lbl">Skipped</div></div>
+    </div>
+  </div>
+  <div class="detail-card">
+    <div class="detail-title"><i class="ti ti-list-details" style="font-size:13px"></i>Submission summary</div>
+    <div class="d-row"><span class="d-lbl">Candidate</span><span class="d-val" id="rd-name"></span></div>
+    <div class="d-row"><span class="d-lbl">Roll / Student ID</span><span class="d-val" id="rd-roll"></span></div>
+    <div class="d-row"><span class="d-lbl">Department</span><span class="d-val" id="rd-dept"></span></div>
+    <div class="d-row"><span class="d-lbl">Questions answered</span><span class="d-val" id="rd-ans"></span></div>
+    <div class="d-row"><span class="d-lbl">Violations recorded</span><span class="d-val" id="rd-viol"></span></div>
+    <div class="d-row"><span class="d-lbl">Time taken</span><span class="d-val" id="rd-time"></span></div>
+    <div class="d-row"><span class="d-lbl">Result</span><span class="d-val" id="rd-result"></span></div>
+  </div>
+  <div class="breakdown-card">
+    <div class="detail-title"><i class="ti ti-chart-bar" style="font-size:13px"></i>Score by topic</div>
+    <div id="breakdown-rows"></div>
+  </div>
+  <div class="notice"><i class="ti ti-info-circle" style="font-size:16px;flex-shrink:0;margin-top:1px"></i><span>Correct answers are not displayed here. Your instructor will review all results and contact shortlisted candidates. Your submission has been recorded.</span></div>
+  <div class="ans-card">
+    <div class="detail-title"><i class="ti ti-clipboard-list" style="font-size:13px"></i>Your answer sheet</div>
+    <div id="as-rows"></div>
+  </div>
+  <div class="footer">Conducted by DFIR CTF Academy &nbsp;&middot;&nbsp; Operation: Silent Exit<br>60-question bank &nbsp;&middot;&nbsp; 25 random per session &nbsp;&middot;&nbsp; Anti-cheat active throughout</div>
+</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-backdrop" id="modal-submit">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-send" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>Submit assessment?</div>
+    <div class="modal-body" id="submit-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btn-cancel-sub">Cancel</button>
+      <button class="btn-primary" id="btn-confirm-sub">Yes, submit now</button>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="modal-viol">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--red)"><i class="ti ti-alert-triangle" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>Violation detected!</div>
+    <div class="modal-body" id="viol-msg"></div>
+    <div class="modal-actions"><button class="btn-danger" id="btn-ack-viol">Acknowledge &amp; continue</button></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  QUESTION BANK — 60 QUESTIONS
+//  Fields: topic, tool (null if concept), diff, scenario (optional), q, o[4], a(index)
+// ═══════════════════════════════════════════════════
+const BANK = [
+// ── SECTION 1: What is Digital Forensics (4) ──────────────────────────
+{topic:"What is Digital Forensics",tool:null,diff:"basic",
+scenario:"The NovaTech IT manager contacts the forensic team after suspecting Alex Mercer copied confidential files before resigning. The team is asked to investigate his workstation NOVATECH-WS042.",
+q:"Which statement most accurately describes what digital forensics involves in this context?",
+o:["The systematic collection, preservation, analysis, and reporting of digital evidence from NOVATECH-WS042 in a manner that maintains its integrity and supports legal proceedings",
+   "The process of scanning NOVATECH-WS042 with antivirus software to identify malicious files and produce a threat report for the NovaTech IT security department to review",
+   "The immediate recovery of deleted files from NOVATECH-WS042 using data carving before the device is returned to NovaTech's IT asset management team for redeployment",
+   "The real-time monitoring of network traffic from NOVATECH-WS042 to detect exfiltration patterns and block outbound connections to unauthorised external servers"],a:0},
+
+{topic:"What is Digital Forensics",tool:null,diff:"basic",
+scenario:"A junior analyst says: 'We should just turn on Alex's workstation, browse his files, and copy what looks suspicious to a USB.' The senior analyst immediately objects.",
+q:"Why is the senior analyst correct to object to this approach?",
+o:["Turning on the workstation without a write blocker could modify file timestamps, browser caches, and registry values — altering evidence and potentially making it inadmissible in legal proceedings",
+   "Browsing files directly on the live workstation will trigger Windows Defender scans that encrypt recently accessed files and automatically remove them from the active file system",
+   "Copying suspicious files without hashing them first will prevent Autopsy from correctly parsing their metadata during the disk image analysis phase of the investigation",
+   "Turning on the workstation will automatically sync OneDrive and overwrite local file copies with older cloud versions, permanently destroying the local evidence on NOVATECH-WS042"],a:0},
+
+{topic:"What is Digital Forensics",tool:null,diff:"basic",
+scenario:"During a team briefing, the lead investigator explains the four core principles that every forensic examination of NOVATECH-WS042 must follow.",
+q:"Which set of four principles correctly represents the foundation of digital forensics practice?",
+o:["Acquisition, preservation, analysis, and reporting — ensuring evidence is collected without alteration, protected from tampering, examined systematically, and documented for legal use",
+   "Collection, encryption, transformation, and archiving — ensuring all evidence files are secured with AES-256 before analysis and stored in an offsite forensic repository",
+   "Identification, scanning, recovery, and deletion — ensuring suspicious files are located, scanned for malware, recovered to a clean drive, and originals securely wiped after imaging",
+   "Duplication, indexing, classification, and presentation — ensuring all drive files are duplicated into a searchable database and classified by file type before analysis begins"],a:0},
+
+{topic:"What is Digital Forensics",tool:null,diff:"basic",
+scenario:"The NovaTech legal team asks whether findings from the NOVATECH-WS042 investigation can be used in employment tribunal proceedings against Alex Mercer.",
+q:"What condition must the forensic investigation meet for findings to be considered legally admissible?",
+o:["The investigation must follow a documented, repeatable methodology — including hash verification, chain of custody records, and tool validation — so another examiner could reproduce the same findings independently",
+   "The investigation must be completed within 48 hours of evidence seizure and submitted to a court-certified forensic laboratory for independent verification before findings are disclosed to legal counsel",
+   "All evidence must be analysed using court-approved software such as EnCase or FTK — open-source tools like Autopsy produce findings that are generally not admissible in employment tribunal proceedings",
+   "The forensic analyst must hold a minimum CFCE certification and submit a sworn affidavit alongside the report before any digital evidence findings can be presented in employment tribunal proceedings"],a:0},
+
+// ── SECTION 2: Evidence Acquisition (4) ───────────────────────────────
+{topic:"Evidence Acquisition",tool:null,diff:"basic",
+scenario:"The forensic team arrives and finds NOVATECH-WS042 powered off. The IT manager suggests pulling the hard drive and copying it using Windows File Explorer on another PC.",
+q:"What is the correct forensic response to the IT manager's suggestion?",
+o:["The drive should be connected via a write blocker before creating a forensic image — direct copying with File Explorer does not capture deleted files, unallocated space, or file metadata accurately",
+   "The drive should be connected directly because Windows File Explorer performs a sector-by-sector copy by default, which is equivalent to a forensic image for investigative purposes",
+   "The drive should remain in the workstation and imaged over the network using remote forensic tools, since physically removing it risks damaging the partition table and corrupting evidence",
+   "The drive should be removed and placed in an evidence bag immediately without imaging, then submitted to a certified laboratory where imaging will be performed under controlled conditions"],a:0},
+
+{topic:"Evidence Acquisition",tool:null,diff:"basic",
+scenario:"Before connecting Alex Mercer's hard drive to the forensic workstation, the lead analyst attaches a hardware device between the drive and the analysis machine.",
+q:"What is the purpose of this hardware device and why is it essential in this investigation?",
+o:["A write blocker prevents any write operations from reaching the suspect drive during imaging — ensuring the original evidence remains bit-for-bit identical to its state at seizure, protecting the investigation's integrity",
+   "A write blocker encrypts all data read from the suspect drive during imaging — ensuring that sensitive NovaTech intellectual property cannot be intercepted during transfer to the forensic workstation",
+   "A write blocker speeds up the imaging process by compressing data as it is read from the suspect drive — reducing the time needed to create a full forensic image of the 500GB hard drive",
+   "A write blocker creates a real-time backup of the suspect drive during imaging — so if the imaging process fails partway through, the partial image can be resumed without restarting from sector zero"],a:0},
+
+{topic:"Evidence Acquisition",tool:null,diff:"intermediate",
+scenario:"After imaging NOVATECH-WS042, the report shows MD5: 9a4f2c1e — MATCH. Two weeks later, before tribunal, the analyst re-hashes and gets a completely different MD5 value.",
+q:"What does this discrepancy indicate and what should the analyst do?",
+o:["The image file has been modified since original acquisition — the analyst must document this discrepancy, preserve the current hash, and immediately report the potential evidence tampering to the case supervisor",
+   "The hashing algorithm produced a collision between the two calculations — the analyst should re-run with SHA-256 instead of MD5 to get a definitive result before reporting to the case supervisor",
+   "The image was automatically compressed by the operating system's storage optimisation feature — the analyst should decompress the image and re-verify the hash before concluding that tampering occurred",
+   "The discrepancy is expected when a forensic image is moved between storage devices — hash values change when files are copied across different file systems such as from NTFS to exFAT"],a:0},
+
+{topic:"Evidence Acquisition",tool:null,diff:"intermediate",
+scenario:"The forensic team must image both an HDD and an SSD recovered from NovaTech's server room. The senior analyst warns that imaging the SSD requires additional considerations.",
+q:"Which statement correctly identifies a key forensic challenge specific to SSD evidence acquisition?",
+o:["SSDs use wear-levelling and TRIM commands that can automatically erase deleted file data — making traditional deleted file recovery less reliable compared to HDDs where deleted data typically remains in unallocated space",
+   "SSDs operate at speeds that exceed the write blocker's maximum throughput — causing the imaging process to introduce write errors into the forensic image that do not exist on the original drive",
+   "SSDs store data in encrypted NAND flash cells by default — requiring the analyst to obtain the manufacturer's decryption key before FTK Imager can create an accurate sector-by-sector image",
+   "SSDs partition storage into multiple independent zones — meaning a single forensic image cannot capture all zones simultaneously and multiple separate images must be created per drive"],a:0},
+
+// ── SECTION 3: Chain of Custody (4) ───────────────────────────────────
+{topic:"Chain of Custody",tool:null,diff:"basic",
+scenario:"After imaging NOVATECH-WS042, the analyst seals the hard drive in an evidence bag and signs across the seal. The next morning a colleague needs access for a second verification.",
+q:"What is the correct procedure the colleague must follow before accessing the sealed evidence?",
+o:["The colleague must document the date, time, reason, and their identity in the chain of custody log — then open the evidence bag, perform the required action, reseal it with a new seal, and sign across the new seal",
+   "The colleague must obtain written authorisation from the court before breaking any evidence seal — accessing sealed forensic evidence without a court order renders all subsequent findings legally inadmissible",
+   "The colleague should create a working copy from the shared network drive instead of accessing the original sealed drive — chain of custody only applies to physical media, not image files",
+   "The colleague must notify the suspect's legal representative before breaking the seal — failure to do so gives the defence grounds to challenge the admissibility of findings from that access session"],a:0},
+
+{topic:"Chain of Custody",tool:null,diff:"basic",
+scenario:"During the NovaTech tribunal, the defence points out a gap in the chain of custody records — NOVATECH-WS042's hard drive has no logged entry between 15 March and 18 March 2024.",
+q:"What is the likely consequence of this gap and why does it matter forensically?",
+o:["The gap creates reasonable doubt about whether the evidence was tampered with during those three days — the defence could argue files were planted or modified, potentially making the forensic findings unreliable or inadmissible",
+   "The gap automatically invalidates the entire forensic investigation — any chain of custody gap, regardless of size, requires evidence to be re-acquired from the original device before findings can be presented",
+   "The gap is only significant if the defence can prove tampering occurred — without direct evidence of modification, a custody gap is considered a minor procedural issue that does not affect admissibility",
+   "The gap requires the forensic analyst to re-hash the evidence and compare with the original hash — if hashes match, the chain of custody gap is legally resolved and cannot be challenged further"],a:0},
+
+{topic:"Chain of Custody",tool:null,diff:"basic",
+scenario:"The NovaTech forensic team uses a standardised evidence log for every item collected — including the hard drive, a USB device found in Alex's desk, and a printed document.",
+q:"Which set of fields must be recorded for every item to maintain a legally defensible chain of custody?",
+o:["Item description, unique identifier, collection date and time, collector name, collection location, and a log of every person who subsequently accessed the item with dates and reasons",
+   "Item description, file system type, acquisition hash, imaging tool used, and the name of the forensic laboratory that will conduct the primary analysis of the collected evidence",
+   "Item description, estimated monetary value, photograph reference number, and the signature of the IT manager who authorised the search of Alex Mercer's workstation and personal desk",
+   "Item description, storage location, encryption key used to secure the item, and the case number assigned by the legal team handling the NovaTech intellectual property dispute proceedings"],a:0},
+
+{topic:"Chain of Custody",tool:null,diff:"intermediate",
+scenario:"A forensic analyst working on the NovaTech case accidentally opens the original E01 image in Autopsy without first verifying the write protection status of the storage device holding it.",
+q:"What is the primary forensic concern with this action and how should it be addressed going forward?",
+o:["Opening a forensic image without write protection could allow Autopsy to modify the image file's metadata or access timestamps — the analyst should always work from a verified copy and store the original on write-protected media",
+   "Opening an E01 image in Autopsy without write protection will cause Autopsy to automatically convert it to RAW format — permanently altering the image structure and invalidating any previously recorded hash values",
+   "Opening the original image rather than a working copy is standard forensic practice — Autopsy is designed to open evidence files in read-only mode by default so no write protection is necessary for E01 files",
+   "The primary concern is that Autopsy will index and cache the entire image contents on the local system drive — potentially filling the analyst's workstation disk and causing the operating system to crash"],a:0},
+
+// ── SECTION 4: File Systems (4) ───────────────────────────────────────
+{topic:"File Systems",tool:null,diff:"basic",
+scenario:"While browsing NOVATECH-WS042's disk image in Autopsy, the analyst notices the drive uses NTFS. She explains to a junior colleague why NTFS is forensically significant compared to FAT32.",
+q:"Which statement correctly explains why NTFS provides richer forensic evidence than FAT32?",
+o:["NTFS maintains a Master File Table that records detailed metadata for every file — including creation, modification, access, and MFT entry change timestamps — giving investigators four separate timestamps per file rather than FAT32's single timestamp",
+   "NTFS automatically encrypts all file metadata using BitLocker — meaning forensic tools like Autopsy must decrypt the MFT before timestamps and file attributes can be read from the NOVATECH-WS042 disk image",
+   "NTFS stores the full content of recently deleted files in a dedicated recovery partition — allowing forensic tools to recover deleted files with complete metadata intact, unlike FAT32 where content is immediately overwritten",
+   "NTFS logs every file read operation in a dedicated access journal — giving investigators a complete record of which user account accessed each file and from which application on NOVATECH-WS042"],a:0},
+
+{topic:"File Systems",tool:null,diff:"intermediate",
+scenario:"Autopsy displays metadata for a file: SentinelCore_v3.7_source.zip — Created 07:55, Modified 08:43, Accessed 08:43, MFT Changed 08:43:09, Size 847MB. The Modified and Accessed timestamps are identical to the second.",
+q:"What is the most forensically significant interpretation of these timestamps?",
+o:["The file was last modified and accessed during the same operation at 08:43 UTC — consistent with the file being compressed or copied at that time, aligning with suspected data staging activity on the morning of resignation",
+   "Identical Modified and Accessed timestamps indicate the file was created by an automated script — since manual file operations always produce slightly different timestamps due to processing delay between operations",
+   "The timestamps indicate the file was accessed but not modified after creation — meaning the source code inside the archive was read but no content changes were made before the archive was closed",
+   "Identical timestamps are a sign of timestamp manipulation using anti-forensic tools — since legitimate file operations always produce different Modified and Accessed times due to the order NTFS updates records"],a:0},
+
+{topic:"File Systems",tool:null,diff:"intermediate",
+scenario:"While examining NOVATECH-WS042's MFT using MFTECmd, the analyst finds an entry marked 'not in use' for ProjectRoadmap_CONFIDENTIAL.docx. The file no longer appears in the active directory listing.",
+q:"What does an MFT entry marked 'not in use' indicate and what forensic action should follow?",
+o:["The file has been deleted — its MFT entry exists because NTFS marks entries as inactive rather than removing them immediately, meaning file content may still be recoverable from unallocated space using Autopsy's data recovery modules",
+   "The file has been encrypted using Windows EFS — the 'not in use' flag indicates the encryption certificate has been revoked, preventing normal access but leaving the encrypted content permanently in the MFT entry",
+   "The file was moved to a different partition — NTFS marks the original MFT entry as 'not in use' when a file is relocated, and the actual file can be found by searching the MFT of the destination partition",
+   "The file is currently locked by a running process — the 'not in use' flag is set by NTFS when a file handle is open, meaning Alex Mercer's session may still be active and accessible via memory analysis"],a:0},
+
+{topic:"File Systems",tool:null,diff:"intermediate",
+scenario:"The analyst explains to the NovaTech legal team why recovering deleted files from NOVATECH-WS042 is possible even though Alex Mercer emptied the Recycle Bin before leaving.",
+q:"Which explanation is forensically accurate regarding deleted file recovery from NTFS?",
+o:["When files are deleted from NTFS, the MFT entry is marked inactive and clusters are flagged as available — but actual file data remains in those clusters until overwritten by new data, allowing recovery tools to reconstruct files from unallocated space",
+   "When files are deleted from NTFS, Windows automatically moves a compressed copy to a hidden system folder called $DeletedFiles — forensic tools like Autopsy access this folder directly and extract files with full metadata",
+   "When files are deleted from NTFS, the file content is split into fragments stored in the MFT's resident data attribute — forensic tools reassemble these fragments by parsing the MFT without needing to analyse unallocated space",
+   "When files are deleted from NTFS, the file system creates a shadow copy of deleted content in the $LogFile journal — forensic tools extract original file content directly from this journal without scanning unallocated clusters"],a:0},
+
+// ── SECTION 5: Windows Artifacts (5) ──────────────────────────────────
+{topic:"Windows Artifacts",tool:null,diff:"basic",
+scenario:"Autopsy parses an LNK file: SentinelCore_v3.7_source.zip.lnk — Target: C:\\Users\\amercer\\AppData\\Local\\Temp\\export\\SentinelCore_v3.7_source.zip — Accessed 08:43 UTC — Volume Type: Fixed Disk.",
+q:"What is the primary forensic value of this LNK file in the NovaTech investigation?",
+o:["The LNK file proves that Alex Mercer's user account opened SentinelCore_v3.7_source.zip from a staging directory in the Temp folder at 08:43 UTC — directly linking his account to file access on the day of departure",
+   "The LNK file proves that the file was copied to an external device at 08:43 UTC — the Volume Type field confirms the destination was a fixed disk rather than a removable USB drive connected to NOVATECH-WS042",
+   "The LNK file proves that SentinelCore_v3.7_source.zip was created by Alex Mercer at 07:55 UTC — the Created timestamp on an LNK file always reflects the time the target file was first written to disk",
+   "The LNK file proves that the file was uploaded to cloud storage at 08:43 UTC — Windows automatically creates LNK files for files that are synced to OneDrive or other cloud services connected to the user account"],a:0},
+
+{topic:"Windows Artifacts",tool:null,diff:"basic",
+scenario:"The analyst finds a Prefetch file: 7ZA.EXE-AB12CD34.pf in C:\\Windows\\Prefetch\\ with last run time 2024-03-14 08:59:03 UTC and a run count of 4.",
+q:"What does this Prefetch file tell the investigator about activity on NOVATECH-WS042?",
+o:["The 7-Zip command-line executable was run four times on this system and was most recently executed at 08:59 UTC on 14 March 2024 — consistent with command-line archiving during the suspected data staging period",
+   "The 7-Zip command-line executable was installed on this system four times — each installation created a new Prefetch entry and the most recent installation occurred at 08:59 UTC on 14 March 2024",
+   "The 7-Zip command-line executable ran for four continuous minutes ending at 08:59 UTC — the run count field in a Prefetch file records execution duration in minutes rather than the number of separate executions",
+   "The 7-Zip command-line executable was blocked by Windows Defender four times and the last block event occurred at 08:59 UTC — Prefetch files are created for both successful and blocked execution attempts equally"],a:0},
+
+{topic:"Windows Artifacts",tool:null,diff:"intermediate",
+scenario:"Autopsy recovers from the Recycle Bin: $IABCDEF1 → Original: C:\\Users\\amercer\\AppData\\Roaming\\rclone\\rclone.conf — Deleted: 2024-03-14 09:45:22 UTC — Size: 1.2 KB. And $RABCDEF1 (binary content).",
+q:"What is the forensic significance of finding these two Recycle Bin files?",
+o:["The $I file confirms Alex Mercer deleted the rclone configuration file at 09:45 UTC — and the $R file contains the actual deleted content, meaning cloud storage credentials used for data transfer may be recoverable",
+   "The $I file contains a backup of the rclone executable automatically created by Windows when the config was deleted — the $R file contains the deletion log generated by the Recycle Bin subsystem",
+   "The $I file confirms the file was permanently deleted using Shift+Delete rather than sent to the Recycle Bin — files appearing in the Recycle Bin with $I prefixes were intercepted by Windows before permanent deletion",
+   "The $I file records that the rclone configuration file was modified by 1.2 KB of data at 09:45 UTC — the size field in a $I file records the amount of data changed rather than the original file size at deletion"],a:0},
+
+{topic:"Windows Artifacts",tool:null,diff:"intermediate",
+scenario:"Using JLECmd on NOVATECH-WS042, the analyst finds entries showing Alex Mercer recently accessed files on \\\\NOVATECH-FS01\\Engineering\\SentinelCore\\ — a restricted network share.",
+q:"What additional forensic value do Jump Lists provide beyond what LNK files already show?",
+o:["Jump Lists record recently and frequently accessed files per application — meaning the analyst can determine not just which files were accessed but which specific application Alex Mercer used to open each file on the share",
+   "Jump Lists record the exact byte count of data read from each file — meaning the analyst can calculate precisely how much SentinelCore source code was read during each of Alex Mercer's access sessions",
+   "Jump Lists record network share access attempts regardless of whether they succeeded — meaning the analyst can determine if Alex Mercer tried to access restricted directories he was denied permission to enter",
+   "Jump Lists are stored in encrypted containers tied to the user's Windows login password — meaning their contents provide stronger authentication evidence than LNK files which can be created by any process"],a:0},
+
+{topic:"Windows Artifacts",tool:null,diff:"intermediate",
+scenario:"The analyst uses ShellBags to determine which folders Alex Mercer navigated to using Windows Explorer on NOVATECH-WS042, even though those folders no longer exist on the drive.",
+q:"Why are ShellBags particularly valuable in this investigation?",
+o:["ShellBags persist in the registry even after the folders they reference are deleted or the drive they pointed to is disconnected — allowing the analyst to prove navigation to specific directories and external drives even when that content is gone",
+   "ShellBags record the file contents of every folder that Windows Explorer opens — allowing the analyst to reconstruct the full directory listing of the SentinelCore network share as Alex Mercer saw it during his last session",
+   "ShellBags are cryptographically signed by Windows at creation — allowing the analyst to verify that folder navigation records were not modified after the fact by anti-forensic tools running under Alex Mercer's account",
+   "ShellBags record the duration of time Alex Mercer spent in each folder — allowing the analyst to determine which directories received the most attention during the suspected staging and exfiltration period"],a:0},
+
+// ── SECTION 6: Registry Forensics (5) ─────────────────────────────────
+{topic:"Registry Forensics",tool:null,diff:"intermediate",
+scenario:"The analyst examines the SYSTEM hive from NOVATECH-WS042 and finds: HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR\\ — Disk&Ven_SanDisk&Prod_Ultra — Serial: 4C530001200824109571 — Last Write: 2024-03-14 08:51:33 UTC.",
+q:"What does this registry entry confirm in the context of the NovaTech investigation?",
+o:["A SanDisk Ultra USB drive with serial number 4C530001200824109571 was connected to NOVATECH-WS042 at 08:51 UTC on 14 March 2024 — the serial number can identify the specific physical device if it is recovered",
+   "A SanDisk Ultra USB drive was found physically connected to NOVATECH-WS042 at 08:51 UTC — the Last Write time confirms the drive was actively being written to at that moment rather than just connected and detected",
+   "A SanDisk Ultra USB drive was the last device ever connected to NOVATECH-WS042 — USBSTOR entries are overwritten each time a new device connects so only the most recently connected device appears in this key",
+   "A SanDisk Ultra USB drive with that serial number is registered to Alex Mercer's NovaTech employee account — the FriendlyName field is populated from the company asset management system during device registration"],a:0},
+
+{topic:"Registry Forensics",tool:null,diff:"intermediate",
+scenario:"While examining Alex Mercer's NTUSER.DAT, the analyst finds UserAssist entries. After ROT-13 decoding, one shows 7-Zip File Manager with run count 3 and last run 08:55 UTC on 14 March 2024.",
+q:"What does this UserAssist entry add to the investigation that Prefetch alone cannot confirm?",
+o:["UserAssist records GUI application launches specifically tied to the logged-in user account — confirming Alex Mercer himself launched 7-Zip File Manager three times via the desktop GUI, rather than it being launched by a script or automated process",
+   "UserAssist records the exact files opened within 7-Zip File Manager — providing a directory listing of every archive Alex Mercer browsed during the three GUI sessions recorded on 14 March 2024",
+   "UserAssist records the network destination where files compressed by 7-Zip were sent — confirming the external IP address or cloud service that received the archived data during each of the three sessions",
+   "UserAssist records the command-line arguments passed to 7-Zip File Manager during each GUI launch — providing exact filenames and destination paths used in each of the three compression operations on 14 March 2024"],a:0},
+
+{topic:"Registry Forensics",tool:null,diff:"intermediate",
+scenario:"RECmd outputs from Alex Mercer's NTUSER.DAT: HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run — Value: SysHealthCheck — Data: rclone.exe sync C:\\Users\\amercer\\Documents remote:novatech-backup --quiet",
+q:"What is the forensic significance of this registry Run key entry?",
+o:["This Run key establishes persistence — rclone was configured to automatically sync Alex Mercer's Documents folder to a remote cloud destination called novatech-backup every time his Windows user account logged in",
+   "This Run key shows rclone was installed as an official NovaTech system health monitoring service — the SysHealthCheck name and quiet flag indicate it was deployed by the IT department as part of standard endpoint management",
+   "This Run key shows rclone was executed once at system startup on 14 March 2024 — Run key entries are deleted after the program executes successfully, so its presence confirms it has not yet run on this system",
+   "This Run key is a false positive — rclone.exe appearing under a non-system path indicates the executable was quarantined by Windows Defender before it could execute and pose a data exfiltration risk"],a:0},
+
+{topic:"Registry Forensics",tool:null,diff:"intermediate",
+scenario:"The analyst wants to determine what drive letter was assigned to the SanDisk Ultra USB device when it was connected to NOVATECH-WS042 on 14 March 2024.",
+q:"Which registry key should the analyst examine to find the drive letter assignment for the USB device?",
+o:["HKLM\\SYSTEM\\MountedDevices — this key maps volume GUIDs and device identifiers to drive letter assignments, allowing the analyst to correlate the SanDisk's device GUID from USBSTOR with its assigned drive letter",
+   "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\DriveIcons — this key records the drive letter, volume label, and icon assigned to each storage device including USB drives connected to the system",
+   "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\MountPoints2 — this key records the drive letter and last access time for every storage device the current user has mounted through Windows Explorer",
+   "HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR\\DriveMappings — this subkey of USBSTOR records the drive letter, partition layout, and volume serial number for each USB device entry in the enumeration tree"],a:0},
+
+{topic:"Registry Forensics",tool:null,diff:"intermediate",
+scenario:"The analyst checks the RecentDocs key in Alex Mercer's NTUSER.DAT and finds entries for three files with extensions .zip, .xlsx, and .pptx — all timestamped between 08:14 and 08:47 UTC on 14 March 2024.",
+q:"What does the RecentDocs key record and why is it useful when combined with LNK file analysis?",
+o:["RecentDocs records files recently opened via Windows Explorer or common file dialogs — when cross-referenced with LNK timestamps, it helps confirm both the file names and access times of documents Alex Mercer opened on his final morning",
+   "RecentDocs records files recently modified by any application running under the user account — providing a complete list of all documents that were edited rather than just opened during the period under investigation",
+   "RecentDocs records files recently uploaded to connected cloud services — the .zip, .xlsx, and .pptx entries confirm these files were successfully transmitted to an external destination between 08:14 and 08:47 UTC",
+   "RecentDocs records files recently printed or exported to PDF — the three entries confirm Alex Mercer sent physical copies of these documents to a printer connected to NOVATECH-WS042 on his last morning"],a:0},
+
+// ── SECTION 7: Browser Forensics (4) ──────────────────────────────────
+{topic:"Browser Forensics",tool:null,diff:"basic",
+scenario:"Autopsy extracts Chrome history from NOVATECH-WS042. Results show: 07:55 — search 'rclone windows download', 07:58 — search 'mega.nz free storage limit 2024', 08:01 — visit downloads.rclone.org, 08:12 — visit mega.nz/fm.",
+q:"What does this sequence of browser activity suggest about Alex Mercer's intent on 14 March 2024?",
+o:["The search and browsing sequence shows systematic preparation for data exfiltration — researching a cloud transfer tool, checking storage capacity on a personal cloud service, downloading the tool, and logging in all within 17 minutes",
+   "The sequence shows Alex Mercer was troubleshooting a legitimate NovaTech data backup issue — rclone and Mega.nz are both listed as approved tools in NovaTech's IT policy for remote backup operations",
+   "The sequence is consistent with normal IT administration activity — downloading rclone and accessing cloud storage are routine tasks for a senior developer managing their own project backups and version control",
+   "The sequence only establishes that these websites were visited — without corroborating evidence from the file system or event logs, browser history alone is insufficient to infer intent in a forensic investigation"],a:0},
+
+{topic:"Browser Forensics",tool:null,diff:"basic",
+scenario:"The analyst wants to determine exactly which files Alex Mercer downloaded through Chrome on 14 March 2024, including the download destination path and file size.",
+q:"Which Chrome artifact should the analyst examine and where is it located?",
+o:["The Chrome History SQLite database — specifically the downloads table at C:\\Users\\amercer\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\History — which records filename, destination path, source URL, file size, and timestamps for every download",
+   "The Chrome Cache folder at C:\\Users\\amercer\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cache — which stores complete copies of all downloaded files along with their original source URLs and download timestamps",
+   "The Chrome Login Data SQLite database at C:\\Users\\amercer\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data — which records saved credentials for download portals including filenames accessed through authenticated sessions",
+   "The Chrome Preferences JSON file at C:\\Users\\amercer\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Preferences — which logs every file download event including destination folder, file hash, and the Google account used"],a:0},
+
+{topic:"Browser Forensics",tool:null,diff:"intermediate",
+scenario:"After extracting Alex Mercer's Chrome cookies, the analyst finds a session cookie for mega.nz with creation time 2024-03-14 08:12 UTC and expiry 2024-03-21 08:12 UTC.",
+q:"What forensic conclusion can be drawn from this cookie artifact?",
+o:["Alex Mercer had an active authenticated session on mega.nz starting at 08:12 UTC — the session cookie confirms a successful login to a personal Mega.nz account on NOVATECH-WS042 on the morning of his departure",
+   "Alex Mercer visited mega.nz for the first time at 08:12 UTC — browser cookies are only created on a user's first visit to a domain, so the creation timestamp marks the initial contact with the cloud storage service",
+   "Alex Mercer's Mega.nz session was still active at the time of device seizure — a cookie with a future expiry of 21 March 2024 indicates the cloud session was never logged out and the account remains remotely accessible",
+   "Alex Mercer uploaded exactly 7 days worth of data to Mega.nz — the 7-day gap between cookie creation and expiry directly corresponds to the total upload duration as recorded by Mega.nz's session management system"],a:0},
+
+{topic:"Browser Forensics",tool:null,diff:"intermediate",
+scenario:"The analyst extracts Chrome browsing history but notices it only goes back to 08:12 UTC on 14 March 2024 — despite Chrome being actively used since at least 07:30 UTC based on other evidence.",
+q:"What is the most likely forensic explanation for the missing Chrome history before 08:12 UTC?",
+o:["Alex Mercer likely used Chrome's history deletion feature or browsed in Incognito mode before 08:12 UTC — Incognito sessions and manually deleted history leave no entries in the History database",
+   "Chrome automatically rotates its History database at 08:00 UTC each day — entries from before 08:00 UTC are moved to an archive database stored in a different subfolder of the Chrome User Data directory",
+   "The missing history indicates Alex Mercer used a different browser before 08:12 UTC — Chrome's History database only records sessions initiated after the browser is restarted, and 08:12 marks Chrome's first launch that day",
+   "The missing history was automatically purged by Windows Defender — security software on NOVATECH-WS042 was configured to clear browser history for URLs matching known file transfer service domains every morning"],a:0},
+
+// ── SECTION 8: Event Logs (4) ─────────────────────────────────────────
+{topic:"Event Logs",tool:null,diff:"basic",
+scenario:"Autopsy parses the Security event log: EventID 4624 — Time 07:41:03 UTC — Account: amercer — Logon Type: 2 — Workstation: NOVATECH-WS042.",
+q:"What does this event confirm and why is Logon Type 2 specifically significant?",
+o:["Event ID 4624 confirms a successful logon — Logon Type 2 means it was an interactive logon, meaning Alex Mercer physically sat at NOVATECH-WS042 and entered his credentials directly rather than connecting remotely or via a service account",
+   "Event ID 4624 confirms a successful logon — Logon Type 2 means it was a remote desktop logon, meaning Alex Mercer connected to NOVATECH-WS042 from another machine using RDP credentials on the morning of his departure",
+   "Event ID 4624 confirms a successful logon — Logon Type 2 means it was a network logon, meaning Alex Mercer's credentials were used to mount a network share on NOVATECH-WS042 from a remote machine on the domain",
+   "Event ID 4624 confirms a successful logon — Logon Type 2 means it was a batch logon, meaning an automated scheduled task running under Alex Mercer's account was triggered at 07:41 UTC by Windows Task Scheduler"],a:0},
+
+{topic:"Event Logs",tool:null,diff:"intermediate",
+scenario:"The analyst notices that the Security event log on NOVATECH-WS042 begins abruptly at 09:52 UTC on 14 March 2024 — but Sysmon logs, LNK files, and browser history all show activity going back to 07:41 UTC.",
+q:"What is the most forensically significant interpretation of this discrepancy?",
+o:["The Security event log was intentionally cleared at approximately 09:52 UTC — the abrupt log start combined with corroborating evidence of earlier activity from other sources strongly suggests deliberate anti-forensics activity by Alex Mercer",
+   "The Security event log was automatically archived by Windows at 09:52 UTC when it reached its maximum size — the archived portion is stored as a separate .evtx file in C:\\Windows\\System32\\winevt\\Logs\\Archive",
+   "The Security event log discrepancy is explained by a system restart at 09:52 UTC — Windows clears the Security log at every restart as part of the audit policy reset procedure defined in local security policy",
+   "The Security event log only records events generated by Microsoft-signed system processes — Sysmon and browser activity are recorded separately because they originate from third-party components not covered by the Windows audit subsystem"],a:0},
+
+{topic:"Event Logs",tool:null,diff:"intermediate",
+scenario:"Autopsy parses Sysmon Event ID 1 — Time 09:03:14 UTC — Image: rclone.exe — CommandLine: rclone.exe copy C:\\Users\\amercer\\AppData\\Local\\Temp\\export remote:novatech-backup --transfers 8 --progress — User: NOVATECH\\amercer — Parent: cmd.exe.",
+q:"What does this Sysmon entry confirm and why is the parent process significant?",
+o:["Sysmon Event ID 1 confirms rclone was executed by Alex Mercer's account at 09:03 UTC with a command copying the staging directory to a remote cloud destination — the parent cmd.exe confirms this was a manually typed command rather than an automated system process",
+   "Sysmon Event ID 1 confirms rclone was installed on NOVATECH-WS042 at 09:03 UTC — process creation events are generated when an executable is first registered with Windows, and cmd.exe is the default parent for all software installation processes",
+   "Sysmon Event ID 1 confirms that the file transfer completed successfully at 09:03 UTC — process creation timestamps in Sysmon record the time a process finishes executing rather than the time it was initially launched",
+   "Sysmon Event ID 1 confirms rclone was blocked by AppLocker at 09:03 UTC — process creation events with cmd.exe as parent indicate the application was intercepted by Windows application control policies before execution"],a:0},
+
+{topic:"Event Logs",tool:null,diff:"intermediate",
+scenario:"Event ID 4688 shows PowerShell.exe launched at 09:47 UTC. The PowerShell Operational log shows Event ID 4104 containing: ScriptBlock: Clear-EventLog -LogName Security; Clear-EventLog -LogName System.",
+q:"What is the forensic significance of this PowerShell Script Block log entry?",
+o:["Event ID 4104 captured the exact PowerShell commands Alex Mercer executed to clear the Security and System event logs — despite his attempt to destroy evidence, Script Block Logging recorded the commands before they executed",
+   "Event ID 4104 shows that PowerShell's automatic log maintenance feature ran at 09:47 UTC — Windows uses the Clear-EventLog cmdlet internally to rotate event logs when they reach capacity as a normal maintenance record",
+   "Event ID 4104 shows the Security and System logs were cleared remotely by NovaTech's IT administrator — PowerShell remoting generates Script Block log entries on the target machine with remote session commands visible",
+   "Event ID 4104 confirms the Clear-EventLog commands failed to execute because PowerShell execution policy was set to Restricted — the script block was logged but the commands were blocked before affecting the event logs"],a:0},
+
+// ── SECTION 9: Timeline Analysis (4) ──────────────────────────────────
+{topic:"Timeline Analysis",tool:null,diff:"intermediate",
+scenario:"The analyst has timestamps from five evidence sources on NOVATECH-WS042: LNK files, Prefetch, Chrome history, USBSTOR registry, and Sysmon event logs. Each source shows slightly different timestamps for related activities.",
+q:"What is the correct approach to resolving these differences and building a reliable incident timeline?",
+o:["The analyst should correlate all timestamps relative to the system clock — check timezone settings from the registry, normalise all times to UTC, then plot events from all sources together to identify the activity sequence",
+   "The analyst should discard timestamps from registry artifacts and LNK files since these are known to be unreliable — only Sysmon and Prefetch timestamps should be used as they are generated directly by the Windows kernel",
+   "The analyst should use only the earliest timestamp from each evidence source — this eliminates the risk of including post-incident timestamps that may have been modified by anti-forensic tools during the incident window",
+   "The analyst should contact Microsoft support to obtain the NTFS journal from NOVATECH-WS042 — the $LogFile is the only forensically reliable timestamp source since all other Windows artifact timestamps can be modified by user applications"],a:0},
+
+{topic:"Timeline Analysis",tool:null,diff:"intermediate",
+scenario:"After correlating all evidence, the analyst arranges key events: 07:41 Logon, 07:55 Chrome search: rclone, 08:01 rclone downloaded, 08:14 LNK: SentinelCore accessed, 08:51 USBSTOR: SanDisk connected, 08:59 Prefetch: 7za.exe, 09:03 Sysmon: rclone executed, 09:47 PS: Clear-EventLog.",
+q:"Which phase of the DFIR attack lifecycle does the 08:14–09:03 UTC window most closely represent?",
+o:["Data collection and staging — Alex Mercer accessed target files, archived them using 7-Zip, and connected a USB device before executing rclone to transfer the staged data to a remote cloud destination",
+   "Initial access and reconnaissance — the 08:14 LNK access represents Alex Mercer's first discovery of the SentinelCore files, followed by manual browsing of available data before selecting which files to target",
+   "Lateral movement and privilege escalation — the USB connection at 08:51 indicates Alex Mercer used the device to move between systems, and rclone was used to escalate access to cloud resources outside the NovaTech network",
+   "Persistence and command-and-control — the rclone execution at 09:03 represents installation of a persistent backdoor, and the 7-Zip activity represents encryption of a communication channel to an external server"],a:0},
+
+{topic:"Timeline Analysis",tool:null,diff:"intermediate",
+scenario:"A junior analyst suggests that the investigation timeline is complete once all file system timestamps have been collected from NOVATECH-WS042's disk image.",
+q:"Why is the senior analyst correct to disagree with this assessment?",
+o:["File system timestamps are just one layer — a complete forensic timeline requires correlating artifacts from multiple sources including registry last-write times, event log entries, browser history, and Prefetch run times to build a comprehensive cross-validated picture",
+   "File system timestamps are actually the least reliable source for timeline construction — NTFS timestamps can be modified by any application with write access, making them inadmissible as standalone timeline evidence",
+   "File system timestamps from a disk image are only accurate if the image was acquired within 24 hours of the incident — after 24 hours, NTFS background processes overwrite timestamp metadata as part of routine maintenance",
+   "File system timestamps cannot be extracted from an E01 forensic image — they are only accessible from the live file system, meaning the analyst would need to boot NOVATECH-WS042 to retrieve accurate timestamp data"],a:0},
+
+{topic:"Timeline Analysis",tool:null,diff:"intermediate",
+scenario:"The NovaTech legal team asks the forensic analyst to present the incident timeline in a format that a non-technical HR manager and a solicitor can both understand and reference during the tribunal.",
+q:"What format best serves this requirement for the incident timeline?",
+o:["A chronological table listing each event with its UTC timestamp, a plain-language description of what occurred, and the specific evidence source supporting it — structured so non-technical readers can follow the narrative while the solicitor can verify each entry",
+   "A raw CSV export from Timeline Explorer showing all 50,000 timeline entries from the super-timeline — this gives the legal team direct access to all evidence and allows them to filter and search independently without relying on the analyst",
+   "A Volatility process tree output converted to PDF — process trees are the most widely understood forensic output format and are routinely accepted by employment tribunals as the primary timeline evidence in insider threat cases",
+   "A series of Autopsy screenshots with timestamps visible in the interface — screenshot evidence is preferred by legal teams because it shows tool output directly and is considered more objective than analyst-written timeline summaries"],a:0},
+
+// ── SECTION 10: Reporting (2) ─────────────────────────────────────────
+{topic:"Reporting",tool:null,diff:"basic",
+scenario:"The NovaTech forensic team is preparing the final investigation report. The lead analyst must write two distinct sections — one for the CISO and legal team, and one for the tribunal technical expert.",
+q:"Which approach correctly describes how these two sections should differ?",
+o:["The executive summary for the CISO and legal team should be written in plain language summarising what happened, when, and business impact — while the technical findings section provides full artifact references, tool outputs, timestamps, and methodology",
+   "Both sections should be written in identical technical language — consistent forensic terminology throughout ensures no information is lost in translation and both audiences receive exactly the same level of detail from the investigation",
+   "The technical section should be written first and the executive summary generated automatically from it using forensic reporting software — manually written summaries introduce subjective interpretation that can be challenged by the defence",
+   "The executive summary should include hash values, Event IDs, and registry key paths — senior stakeholders in legal proceedings are expected to understand technical forensic evidence and simplified summaries are considered unprofessional in tribunal contexts"],a:0},
+
+{topic:"Reporting",tool:null,diff:"basic",
+scenario:"During the tribunal, the defence challenges the forensic report: 'The report says Alex Mercer copied files, but it doesn't say which tool the analyst used to reach that conclusion or how the tool was validated.'",
+q:"Why is this challenge forensically significant and how should a well-written report address it?",
+o:["The challenge is valid — a forensic report must document every tool used, its version, and how findings were verified, ideally cross-referencing results from two tools — so methodology is repeatable and the defence cannot argue findings are tool-dependent",
+   "The challenge is not valid — forensic tools used by certified analysts are presumed reliable by courts, and documenting tool names and versions in a report is optional unless challenged by a court-appointed technical expert",
+   "The challenge is valid — but the correct response is to resubmit the report with tool names added to the appendix, since tool documentation is supplementary information that does not need to appear in the main body",
+   "The challenge is not valid — the defence is not permitted to challenge forensic methodology unless they produce their own independent examination using the same evidence, which requires court permission rarely granted in employment tribunals"],a:0},
+
+// ── SECTION 11: FTK Imager (8) ────────────────────────────────────────
+{topic:"FTK Imager",tool:"FTK Imager",diff:"basic",
+scenario:"The analyst has connected Alex Mercer's hard drive via a hardware write blocker to the forensic workstation and opens FTK Imager to create a forensic image of the drive.",
+q:"Which FTK Imager option and image format should she select and why?",
+o:["File → Create Disk Image → Physical Drive — selecting the physical drive ensures the entire disk is captured including boot sectors, unallocated space, and hidden partitions, and E01 is preferred as it supports compression, segmentation, and embedded hash verification",
+   "File → Add Evidence Item → Logical Drive — selecting a logical drive captures only the active file system partition, which is sufficient for most investigations and produces a smaller image file than a full physical disk capture",
+   "File → Create Disk Image → Image File — selecting an existing image file allows FTK Imager to create a verified copy of a previously acquired image, which is the correct method for creating the original image from a physical drive",
+   "File → Obtain Protected Image — this option is specifically designed for write-blocked drives and automatically selects the optimal image format based on the drive's sector size and file system type detected during connection"],a:0},
+
+{topic:"FTK Imager",tool:"FTK Imager",diff:"basic",
+scenario:"After creating the forensic image, FTK Imager displays: MD5 checksum: 9a4f2c1e — SHA1: 4f3a9c2e — Verify result: SUCCESSFUL.",
+q:"What should the analyst do immediately after seeing this result before proceeding with analysis?",
+o:["Record both hash values in the case documentation and chain of custody log — then store the original E01 segments on write-protected media so the verification hashes serve as the integrity baseline for all future comparisons",
+   "Re-run the acquisition immediately to generate a second image — FTK Imager's verification result only confirms the image was written correctly to disk and does not confirm that the source drive was unmodified during imaging",
+   "Submit the hash values to FTK's online verification portal — AccessData maintains a centralised database of verified forensic image hashes that confirms whether a drive has previously been imaged by another investigator",
+   "Convert the E01 segments to a single RAW image file immediately — segmented E01 files are considered less forensically reliable than a single RAW image because segment boundaries can introduce corruption during long-term storage"],a:0},
+
+{topic:"FTK Imager",tool:"FTK Imager",diff:"basic",
+scenario:"The analyst uses FTK Imager's 'Add Evidence Item' feature to preview the contents of NOVATECH-WS042.E01 before loading it into Autopsy. She navigates to C:\\Users\\amercer\\AppData\\Local\\Temp\\ and sees a folder called 'export' containing several large ZIP files.",
+q:"What is the forensic value of using FTK Imager for this preview rather than opening the image directly in Autopsy?",
+o:["FTK Imager allows rapid read-only preview of the image file system without running ingest modules — enabling the analyst to quickly verify key artifacts and directory structures before committing to the longer Autopsy case processing time",
+   "FTK Imager automatically flags suspicious files based on known hash sets during preview — browsing the export folder in FTK Imager immediately identifies whether ZIP files match known malware or previously flagged exfiltration packages",
+   "FTK Imager preview mode decrypts BitLocker and EFS encrypted files automatically — allowing the analyst to read protected content in the export folder without needing Alex Mercer's credentials or the volume encryption key",
+   "FTK Imager preview is required before Autopsy can process the image — Autopsy will reject E01 files that have not been pre-verified through FTK Imager's evidence integrity check module before being added as a case source"],a:0},
+
+{topic:"FTK Imager",tool:"FTK Imager",diff:"intermediate",
+scenario:"A second analyst needs to work on a copy of NOVATECH-WS042.E01 simultaneously. The lead analyst suggests using FTK Imager to create a working copy.",
+q:"What is the correct procedure for creating a verified working copy using FTK Imager?",
+o:["Add the original E01 as an evidence item, then use File → Create Disk Image with the E01 as source — FTK Imager will create a new verified image with its own hash, which can be distributed to the second analyst while the original is preserved intact",
+   "Use Windows File Explorer to copy the E01 segments to a second drive — file-level copying of E01 segments is equivalent to a forensic copy since the E01 format embeds its own integrity verification and does not require FTK Imager for duplication",
+   "Use FTK Imager's 'Export Files' feature to export the entire file system to a new folder — this creates a flat file copy that the second analyst can browse without needing forensic software installed on their workstation",
+   "Mount the original E01 using FTK Imager's image mounting feature and allow the second analyst to connect to the mounted drive over the network — network mounting provides read-only access and is recommended for multi-analyst scenarios"],a:0},
+
+{topic:"FTK Imager",tool:"FTK Imager",diff:"intermediate",
+scenario:"While previewing NOVATECH-WS042.E01 in FTK Imager, the analyst notices a large area of unallocated space on the drive. Several file signatures are visible when she uses the hex viewer on that area.",
+q:"What does this finding indicate and what should the analyst do next?",
+o:["Unallocated space containing file signatures indicates deleted files whose clusters have not yet been overwritten — the analyst should ensure Autopsy's file carving module is enabled during ingest so these recoverable files are extracted and examined",
+   "Unallocated space containing file signatures indicates the drive has been wiped using a single-pass overwrite — signatures visible in wiped space are artefacts of the wiping algorithm and do not represent recoverable file content",
+   "Unallocated space containing file signatures indicates the drive is experiencing hardware failure — NTFS reallocates failing sectors to unallocated space during SMART monitoring and visible signatures are from the bad sector recovery process",
+   "Unallocated space in an E01 image is automatically zeroed out during FTK Imager acquisition — any signatures visible in this area were present on the forensic workstation's own drive and were inadvertently merged into the image"],a:0},
+
+{topic:"FTK Imager",tool:"FTK Imager",diff:"intermediate",
+scenario:"The analyst uses FTK Imager to export the Recycle Bin from NOVATECH-WS042.E01. The exported folder contains $I3F9A2B.zip (1.1 KB) and $R3F9A2B.zip (823 MB). The $I file reveals: Original path: C:\\Users\\amercer\\AppData\\Local\\Temp\\export\\SentinelCore_archive_FINAL.zip",
+q:"What are the next two forensic actions the analyst should take with these files?",
+o:["Hash the $R file to confirm its integrity, then extract and examine its contents — the $R file is the actual deleted archive and at 823 MB likely contains the staged SentinelCore data Alex Mercer deleted to remove evidence of staging",
+   "Submit both files to VirusTotal immediately to determine if the archive contains malware — the large size of the $R file is consistent with a self-extracting malware package rather than a legitimate data archive created for exfiltration",
+   "Delete both files from the exported folder and re-export the Recycle Bin — the $I and $R files must be extracted together in a single export operation for FTK Imager to correctly reconstruct the original filename and metadata",
+   "Use FTK Imager to re-image only the Recycle Bin directory as a separate E01 — forensic best practice requires each subdirectory of a user profile to be imaged individually to ensure chain of custody covers each artifact independently"],a:0},
+
+{topic:"FTK Imager",tool:"FTK Imager",diff:"intermediate",
+scenario:"The analyst needs to acquire a forensic image but learns the IT team already ran a standard Windows Backup of the machine before the forensic team arrived.",
+q:"Why is the Windows Backup insufficient as forensic evidence and why must FTK Imager still be used?",
+o:["Windows Backup only copies active user files and does not capture deleted files, unallocated space, Prefetch, registry hives in use, or Volume Shadow Copies — FTK Imager captures a full sector-by-sector image preserving all forensic artifacts",
+   "Windows Backup produces files in a proprietary .wbcat format that is not supported by Autopsy or any other forensic tool — FTK Imager must be used to convert the backup into an E01 format before forensic analysis can begin",
+   "Windows Backup was run after the incident which means the backup timestamp is later than the incident — FTK Imager must be used because it can back-date the forensic image to the time of incident using NTFS journal timestamps",
+   "Windows Backup modifies the archive bit on every file it copies — this permanently alters file metadata across the entire volume, meaning the backup has contaminated the evidence and FTK Imager can no longer produce a clean image"],a:0},
+
+{topic:"FTK Imager",tool:"FTK Imager",diff:"intermediate",
+scenario:"The analyst needs to examine a Volume Shadow Copy (VSS) on NOVATECH-WS042 to see what files existed before Alex Mercer's deletions on 14 March 2024.",
+q:"How can FTK Imager assist in accessing Volume Shadow Copy data from the forensic image?",
+o:["FTK Imager can mount the E01 image as a virtual drive, after which VSS examination tools like ShadowExplorer can be used to access shadow copy snapshots — allowing the analyst to browse the file system state from before the deletions",
+   "FTK Imager has a built-in Shadow Copy Explorer module accessible via Tools → Volume Shadow Copy that directly enumerates and extracts files from all VSS snapshots within the mounted E01 image without additional tools",
+   "FTK Imager automatically extracts all Volume Shadow Copy contents into a \\VSS_Snapshots\\ folder during initial image acquisition — the analyst can browse this folder directly in the FTK Imager evidence tree",
+   "Volume Shadow Copies are stored in an encrypted container that FTK Imager cannot access without the BitLocker recovery key — VSS data from a forensic image can only be examined using Microsoft's official Volume Shadow Copy SDK"],a:0},
+
+// ── SECTION 12: Autopsy (10) ──────────────────────────────────────────
+{topic:"Autopsy",tool:"Autopsy",diff:"basic",
+scenario:"The analyst opens Autopsy for the first time to examine NOVATECH-WS042.E01. The first screen asks her to create a new case.",
+q:"Which information should be entered in the new case setup and why does it matter forensically?",
+o:["Case name, case number, examiner name, and organisation — this information is embedded in Autopsy's case database and output reports, ensuring every finding is attributed to the correct investigation and examiner for chain of custody purposes",
+   "Case name and the full path to the E01 image — Autopsy only requires the minimum information needed to locate the evidence file, and additional metadata like examiner name is optional and does not affect forensic validity",
+   "Case name, target workstation IP address, and domain name — Autopsy uses this network information to automatically correlate findings from the disk image with live network logs retrieved from the NovaTech domain controller",
+   "Case name and the hash values of the E01 image — Autopsy requires pre-computed hashes to be entered manually during case creation so it can verify image integrity before loading the evidence into the case database"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"basic",
+scenario:"After adding NOVATECH-WS042.E01 as a data source in Autopsy, the analyst is presented with the Ingest Modules selection screen showing: Recent Activity, Hash Lookup, File Type Identification, Keyword Search, and Email Parser.",
+q:"Which modules should she prioritise enabling for this investigation and why?",
+o:["Recent Activity, Keyword Search, File Type Identification, and Hash Lookup — Recent Activity extracts browser history, LNK files, and registry data; Keyword Search locates relevant filenames; File Type ID flags misnamed files; Hash Lookup identifies known files",
+   "Email Parser and Encryption Detection only — since the primary hypothesis is that Alex Mercer emailed confidential files externally, focusing on email artifacts will produce the most targeted results without extending ingest time unnecessarily",
+   "All modules should be disabled initially — Autopsy should first be used in manual browse mode to identify which artifacts exist before running ingest modules, since running all modules simultaneously can corrupt the case database on large E01 images",
+   "Only the Hash Lookup module needs to be enabled — Autopsy's hash lookup against the NSRL automatically categorises all files on the drive, leaving only suspicious files which can then be manually reviewed without additional ingest processing"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"basic",
+scenario:"After ingest, Autopsy's Results tree under 'Recent Activity → Web History' shows: URL mega.nz/fm — Date 2024-03-14 08:12:33 UTC. Under 'Recent Activity → Web Downloads' shows: rclone-v1.65.2-windows-amd64.zip — from downloads.rclone.org — 2024-03-14 08:01:17 UTC.",
+q:"What do these two Autopsy findings together confirm about Alex Mercer's activity?",
+o:["Alex Mercer downloaded rclone at 08:01 UTC and then logged into a Mega.nz cloud storage account at 08:12 UTC — together these confirm both the tool acquisition and the cloud destination used for the suspected data exfiltration within an 11-minute window",
+   "Alex Mercer attempted to download rclone but was redirected to Mega.nz at 08:12 UTC — when a download fails, Chrome automatically searches for alternative sources and the Mega.nz visit represents Chrome's automatic redirect to a mirror download site",
+   "Alex Mercer's Mega.nz session at 08:12 UTC was initiated by the rclone download at 08:01 UTC — rclone automatically opens a browser authentication session to the configured remote during installation to validate cloud storage credentials",
+   "Alex Mercer visited Mega.nz to download rclone at 08:12 UTC — the two entries represent the same download event recorded twice in Autopsy's ingest results, once under Web Downloads and once under Web History for the same file"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"intermediate",
+scenario:"Autopsy's 'Deleted Files' section shows SentinelCore_archive_FINAL.zip with a red X icon. The file shows size 823 MB but displays 'Unallocated' in the location column.",
+q:"What does this indicate and what should the analyst do to recover the file?",
+o:["The file was deleted and its clusters marked as unallocated — but the content may still be intact if not overwritten; the analyst should right-click the file and select 'Extract File' to attempt recovery, then hash the extracted file and examine its contents",
+   "The file is unallocated because it was stored on an external USB drive — Autopsy displays external device files as unallocated when the device was disconnected before imaging, and the file content cannot be recovered from the disk image",
+   "The file is showing as deleted due to a file system error rather than deliberate deletion — the Unallocated status combined with the intact 823 MB size indicates a corrupted MFT entry rather than a user-initiated delete operation",
+   "The file cannot be extracted because Autopsy's deleted file recovery only works for files under 100 MB — for large deleted files like this 823 MB archive, the analyst must use a dedicated file carving tool such as PhotoRec"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"intermediate",
+scenario:"The analyst wants to search NOVATECH-WS042.E01 for any occurrence of the text 'SentinelCore' across all files — including documents, emails, browser history, and unallocated space.",
+q:"How should she perform this search in Autopsy and what should she be aware of regarding the results?",
+o:["Use the Keyword Search module — enter 'SentinelCore' as a keyword with both Exact Match and Substring options, search across all file types including unallocated space; be aware results may include hits in deleted file fragments, swap files, and hibernation files",
+   "Use Autopsy's File Search by Attribute function — enter 'SentinelCore' in the filename field and select All File Types; this searches filenames, file content, and metadata simultaneously and is more comprehensive than the Keyword Search module",
+   "Use the Timeline view filtered to the investigation date — Autopsy's Timeline automatically highlights files containing the search term when a date range is selected, making it the most efficient way to locate SentinelCore references",
+   "Export the entire image as a flat file structure first, then use Windows search on the exported folder — Autopsy's internal Keyword Search is limited to indexed file types and misses content in unallocated space"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"intermediate",
+scenario:"Autopsy's Recent Activity module extracts from NTUSER.DAT: rclone v1.65.2 installed 2024-03-14 08:05:22 UTC at C:\\Users\\amercer\\AppData\\Local\\Programs\\rclone\\. And from the Run key: HKCU\\...\\Run\\SysHealthCheck = rclone.exe sync C:\\Users\\amercer\\Documents remote:novatech-backup --quiet.",
+q:"What does the combination of these two Autopsy findings establish about Alex Mercer's preparation?",
+o:["Alex Mercer installed rclone at 08:05 UTC and configured it to automatically sync his Documents folder to a remote cloud destination on every login — the Run key establishes persistence, indicating a deliberate and planned setup rather than accidental installation",
+   "Alex Mercer installed rclone as part of NovaTech's approved remote work toolkit at 08:05 UTC — the Run key entry with SysHealthCheck label confirms it was configured by the IT department as part of standard endpoint health monitoring procedures",
+   "Alex Mercer's rclone installation at 08:05 UTC was blocked by Windows UAC — the installation path in AppData\\Local rather than Program Files indicates the installer failed to complete and rclone was never successfully executed",
+   "Alex Mercer installed rclone at 08:05 UTC but the Run key entry was created by a separate automated process — Autopsy's Recent Activity module cannot determine whether the user or an automated script created registry Run key entries"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"intermediate",
+scenario:"The analyst uses Autopsy's Timeline view filtered to 14 March 2024 between 07:00 and 10:00 UTC. She sees a dense cluster of file system events between 08:45 and 09:10 UTC involving the Temp\\export directory.",
+q:"What does a dense cluster of file system events in a specific directory over a short time window typically indicate?",
+o:["A dense cluster of file events in Temp\\export over 25 minutes is consistent with bulk file staging activity — files being moved, copied, or compressed in preparation for exfiltration, aligning with the rclone execution at 09:03 UTC",
+   "A dense cluster of file events is typically caused by Windows Update or antivirus scanning — these processes access large numbers of files rapidly and commonly generate timeline clusters mistaken for user-initiated data staging activity",
+   "A dense cluster of file events in Temp directories always indicates malware execution — legitimate user operations in AppData\\Local\\Temp generate only isolated file events because Windows throttles user-initiated Temp directory writes",
+   "A dense cluster of file events indicates that Autopsy's ingest process is still running — timeline clusters in the same directory represent Autopsy's own indexing operations rather than actual user file system activity from the investigation period"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"intermediate",
+scenario:"The analyst has completed her Autopsy analysis and needs to generate a report for the NovaTech legal team. She navigates to 'Generate Report' in Autopsy.",
+q:"Which report format and content selection best serves the needs of this investigation?",
+o:["HTML or Excel report with all tagged results selected — tagging key artifacts during analysis and generating a report from tagged items produces a focused, evidence-based report that includes file details, timestamps, and source locations without overwhelming the legal team",
+   "Full file listing report in CSV format covering all files on the drive — providing a complete file list ensures the legal team has access to all evidence without relying on the analyst's judgment about which items are relevant to the investigation",
+   "KML report format — Autopsy's KML output is the standard forensic report format accepted by employment tribunals and includes embedded hash values, chain of custody records, and a digital signature verifying the report was generated from an unmodified source",
+   "The analyst should not use Autopsy's built-in report generator — forensic reports must be written manually by the examiner to ensure accuracy, as Autopsy's automated reports are known to omit critical metadata for files recovered from unallocated space"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"intermediate",
+scenario:"Autopsy's EXIF Parser extracts metadata from a file in Alex Mercer's Documents folder: NovaTech_Roadmap_2025_DRAFT.docx — Author: Alex Mercer — Company: NovaTech Solutions — Created: 2024-01-08 — Modified: 2024-03-13 17:44 UTC — Last Saved By: amercer — Revision: 47.",
+q:"What is the forensic significance of this metadata and how does it support the investigation?",
+o:["The metadata confirms the document belongs to NovaTech Solutions, was authored and last saved by Alex Mercer, and was modified the day before his departure — the 47 revisions indicate extensive ongoing work, establishing this as a high-value document he had continued access to immediately before leaving",
+   "The metadata confirms the document was created externally and brought into NovaTech — documents created outside an organisation show a Company field differing from the author's employer, indicating this file originated on Alex Mercer's personal device",
+   "The metadata confirms the document was encrypted before being saved to disk — a revision count above 40 in Office documents indicates that Microsoft Word's auto-encryption feature was activated during one of the later save operations",
+   "The metadata confirms the document was accessed but not modified on 14 March 2024 — the Last Saved By field records the most recent account to open the file in read-only mode rather than the account that last made content changes"],a:0},
+
+{topic:"Autopsy",tool:"Autopsy",diff:"applied",
+scenario:"After running all ingest modules on NOVATECH-WS042.E01, Autopsy flags 23 files under 'Interesting Files → Possible Encryption.' Several are in Alex Mercer's Temp\\export\\ directory with .7z extensions.",
+q:"What should the analyst do with these flagged files and what is their potential significance?",
+o:["The analyst should attempt to extract and open each .7z file — if password-protected, note the encryption as evidence of deliberate obfuscation, attempt password recovery, and document each file's name, size, and location as part of the staging and exfiltration evidence chain",
+   "The analyst should immediately quarantine all flagged files and submit them to the NovaTech IT security team — Autopsy's Interesting Files flag for possible encryption indicates confirmed malware, and encrypted files in Temp directories are a definitive ransomware indicator",
+   "The analyst should delete the flagged files from the case and re-run ingest — Autopsy incorrectly flags compressed archive formats like .7z as possible encryption due to their high entropy, and removing them prevents false positives from cluttering key findings",
+   "The analyst should note the flags but take no further action on the .7z files — encrypted files cannot contribute to a forensic investigation because their content is inaccessible without the key, and their presence alone is not sufficient evidence for the report"],a:0},
+
+// ── SECTION 13: EZ Tools (6) ──────────────────────────────────────────
+{topic:"EZ Tools — LECmd",tool:"EZ Tools",diff:"intermediate",
+scenario:"LECmd output from NOVATECH-WS042 Recent folder: Source LNK: SentinelCore_v3.7_source.zip.lnk — Target: C:\\Users\\amercer\\AppData\\Local\\Temp\\export\\ — Machine ID: NOVATECH-WS042 — MAC Address: 00:1A:2B:3C:4D:5E — Target Accessed: 2024-03-14 08:43:07 UTC — Volume Type: Fixed.",
+q:"Beyond confirming file access, what additional forensic value does the Machine ID and MAC address in this LNK output provide?",
+o:["The Machine ID and MAC address confirm the LNK file was created on NOVATECH-WS042 itself — ruling out the possibility that the LNK was planted from another machine, and the MAC address can be cross-referenced with network logs to confirm the workstation's identity",
+   "The Machine ID and MAC address confirm that the target file was copied to a device with MAC address 00:1A:2B:3C:4D:5E — LNK files record the destination device's network identifier when a file is copied to an external location from the source machine",
+   "The Machine ID field in the LNK file is always set to the forensic workstation's hostname — LECmd populates this field during processing rather than reading it from the original LNK file, so it confirms the analyst's machine rather than the suspect's workstation",
+   "The MAC address in the LNK file confirms Alex Mercer's personal laptop was connected to NOVATECH-WS042 via a direct network cable — Windows creates LNK files containing the connected device's MAC address when files are accessed over a peer-to-peer connection"],a:0},
+
+{topic:"EZ Tools — PECmd",tool:"EZ Tools",diff:"intermediate",
+scenario:"PECmd output for one entry: Executable RCLONE.EXE — Run Count: 3 — Last Run: 2024-03-14 09:03:14 UTC — Previous Runs: 08:58:02, 08:55:49 — Files Loaded includes: rclone.exe, cmd.exe, C:\\Users\\amercer\\AppData\\Local\\Temp\\export\\ (directory referenced).",
+q:"What does the 'Files Loaded' section of PECmd output reveal that the run count and timestamps alone cannot?",
+o:["The Files Loaded section shows which files and directories rclone.exe accessed or referenced during execution — confirming that rclone directly referenced the Temp\\export staging directory during its runs, linking the tool's execution to the staged files identified elsewhere",
+   "The Files Loaded section shows which files were successfully transferred by rclone during each of the three execution runs — providing a complete manifest of the data exfiltrated to the remote cloud destination during the incident window",
+   "The Files Loaded section shows which files were created by rclone during execution — confirming the exact archive files that rclone produced in the Temp\\export directory as part of its compression process before initiating the cloud transfer",
+   "The Files Loaded section shows which user accounts had access to the rclone executable during its three runs — confirming whether other NovaTech employees may have also used the tool on NOVATECH-WS042 during the period surrounding Alex Mercer's departure"],a:0},
+
+{topic:"EZ Tools — RECmd",tool:"EZ Tools",diff:"intermediate",
+scenario:"RECmd output from the SYSTEM hive with MountedDevices batch map: DosDevices\\F: — Device Type: USB — GUID: {3A4B5C6D...} — Volume Name: SANDISK_ULTRA — Last Write: 2024-03-14 08:51:44 UTC.",
+q:"What does this MountedDevices entry confirm that the USBSTOR entry alone cannot?",
+o:["MountedDevices confirms drive letter F: was assigned to the SanDisk Ultra when connected — USBSTOR confirms the device was connected but not which drive letter it received, which is critical for tracing file copy operations referencing F:\\ in other artifacts",
+   "MountedDevices confirms the SanDisk Ultra contained a volume named SANDISK_ULTRA at the time it was connected — USBSTOR only records device manufacturer and model, so MountedDevices is the only registry key confirming the volume label on the device",
+   "MountedDevices confirms the SanDisk Ultra was connected for exactly 44 seconds — the difference between USBSTOR last write at 08:51:00 and MountedDevices last write at 08:51:44 represents the total connection duration before the device was ejected",
+   "MountedDevices confirms that files were successfully written to the SanDisk Ultra — the Last Write timestamp on a MountedDevices entry is only updated when data is written to the mounted volume rather than when the device is simply connected and detected"],a:0},
+
+{topic:"EZ Tools — MFTECmd",tool:"EZ Tools",diff:"intermediate",
+scenario:"The analyst runs MFTECmd on the $MFT from NOVATECH-WS042 and loads the output CSV into Timeline Explorer. She filters for entries in C:\\Users\\amercer\\AppData\\Local\\Temp\\export\\ between 08:40 and 09:10 UTC.",
+q:"What forensic value does MFTECmd provide over Autopsy's built-in file browsing for this specific task?",
+o:["MFTECmd extracts all four NTFS timestamps per file — Created, Modified, Accessed, and MFT Entry Changed — and outputs them to CSV for Timeline Explorer, enabling detection of timestamp manipulation where one timestamp was altered but others were not",
+   "MFTECmd can recover file content from the MFT's resident data attribute that Autopsy misses — for small files under 700 bytes, MFT resident data contains complete file content and MFTECmd extracts this directly without requiring file carving",
+   "MFTECmd provides real-time access to the live MFT on the running system — unlike Autopsy which reads a static snapshot from the E01 image, MFTECmd connects to the NTFS volume driver and retrieves current file system state including post-imaging changes",
+   "MFTECmd automatically identifies and flags timestamp manipulation using built-in NTFS forensic rules — any file with a Created timestamp later than its Modified timestamp is automatically tagged as tampered in Timeline Explorer output"],a:0},
+
+{topic:"EZ Tools — JLECmd",tool:"EZ Tools",diff:"intermediate",
+scenario:"JLECmd output for Alex Mercer's Windows Explorer Jump List: Entry 1: \\\\NOVATECH-FS01\\Engineering\\SentinelCore\\v3.7\\source\\ — Last Access 08:20:11 UTC. Entry 2: C:\\Users\\amercer\\AppData\\Local\\Temp\\export\\ — 08:44:33 UTC. Entry 3: F:\\ — 08:52:08 UTC.",
+q:"What story do these three Jump List entries together tell the forensic investigator?",
+o:["Alex Mercer navigated to the SentinelCore network share at 08:20, then to the local staging directory at 08:44, then to the USB drive at 08:52 — a sequence consistent with accessing source files, staging them locally, and copying to external media",
+   "Alex Mercer received files sent to his local Temp folder from the SentinelCore network share at 08:20 UTC — Jump List entries are created when files arrive at a destination folder, so the sequence shows an automated push from the server rather than user navigation",
+   "Alex Mercer opened Windows Explorer three separate times during this period — Jump List entries are only created at Windows Explorer launch and each entry represents a separate Explorer instance being opened rather than navigation within a running session",
+   "Alex Mercer copied files from F:\\ to the SentinelCore network share at 08:52 UTC — Jump List entries are ordered by destination rather than source, so the F:\\ entry at 08:52 indicates the USB drive was the origin and the network share was the copy target"],a:0},
+
+{topic:"EZ Tools — Timeline Explorer",tool:"EZ Tools",diff:"applied",
+scenario:"The analyst has CSV outputs from LECmd, PECmd, JLECmd, RECmd, and MFTECmd. She wants to merge these into a single unified timeline and filter it to the incident window of 07:00 to 10:00 UTC on 14 March 2024.",
+q:"What is the correct workflow for achieving this in Timeline Explorer?",
+o:["Open Timeline Explorer, drag and drop all CSV files into the application — Timeline Explorer automatically maps common timestamp columns across different EZ Tool output formats, then apply a date filter for 14 March 2024 07:00–10:00 UTC and sort by timestamp ascending",
+   "Merge all CSV files into a single file using Excel before opening in Timeline Explorer — Timeline Explorer can only process a single input file at a time, so the CSVs must be manually combined with a consistent column structure before loading",
+   "Open each CSV separately in Timeline Explorer and use the Export Filtered Results function to save each tool's output for the incident window — then manually compare the five exported files side by side to reconstruct the unified activity sequence",
+   "Convert all CSV outputs to XLSX format first using Excel — Timeline Explorer only accepts XLSX input and will display an error if CSV files are loaded directly, so conversion is a required step before the unified timeline can be built and filtered"],a:0},
+];
+
+// ═══════════════════════════════════════════════════
+//  SHUFFLE + RANDOM PICK
+// ═══════════════════════════════════════════════════
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function pickQuestions(bank, n){
+  const shuffled = shuffle([...bank]);
+  return shuffled.slice(0, n).map(q => {
+    const optIdx = shuffle([...Array(q.o.length).keys()]);
+    return {
+      topic: q.topic,
+      tool: q.tool,
+      diff: q.diff,
+      scenario: q.scenario || null,
+      q: q.q,
+      o: optIdx.map(i => q.o[i]),
+      a: optIdx.indexOf(q.a)
+    };
+  });
+}
+
+const QS = pickQuestions(BANK, 25);
+const ST = {
+  answers: new Array(QS.length).fill(null),
+  cur: 0, viols: 0, sec: 40*60,
+  tick: null, startMs: null, candidate: {}
+};
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+function show(id){
+  document.querySelectorAll('#sc-landing,#sc-exam,#sc-result').forEach(el=>el.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function $(id){return document.getElementById(id)}
+
+// ═══════════════════════════════════════════════════
+//  LANDING VALIDATION
+// ═══════════════════════════════════════════════════
+function validate(){
+  const ok=$('inp-email').value.trim()&&$('inp-name').value.trim()&&$('inp-roll').value.trim()&&$('inp-dept').value&&$('chk-agree').checked;
+  $('btn-start').disabled=!ok;
+}
+['inp-email','inp-name','inp-roll','inp-dept'].forEach(id=>$(id).addEventListener('input',validate));
+$('chk-agree').addEventListener('change',validate);
+
+$('btn-start').addEventListener('click',()=>{
+  const email=$('inp-email').value.trim();
+  if(!email.includes('@')){$('err-email').style.display='block';return;}
+  $('err-email').style.display='none';
+  ST.candidate={email,name:$('inp-name').value.trim(),roll:$('inp-roll').value.trim(),dept:$('inp-dept').value,phone:$('inp-phone').value.trim()};
+  ST.startMs=Date.now();
+  startExam();
+});
+
+// ═══════════════════════════════════════════════════
+//  EXAM ENGINE
+// ═══════════════════════════════════════════════════
+function startExam(){
+  show('sc-exam');
+  buildDots();
+  renderQ();
+  startTimer();
+  document.addEventListener('visibilitychange',onVis);
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+}
+
+function buildDots(){
+  const g=$('dot-grid');g.innerHTML='';
+  QS.forEach((_,i)=>{
+    const d=document.createElement('button');
+    d.className='dot'+(i===0?' cur':'');
+    d.textContent=i+1;
+    d.onclick=()=>{ST.cur=i;renderQ();};
+    g.appendChild(d);
+  });
+}
+
+function updateDots(){
+  $('dot-grid').querySelectorAll('.dot').forEach((d,i)=>{
+    d.className='dot'+(ST.answers[i]!==null?' ans':'')+(i===ST.cur?' cur':'');
+  });
+}
+
+function renderQ(){
+  const q=QS[ST.cur];
+  const letters=['A','B','C','D'];
+
+  // Tags
+  $('q-phase').textContent=q.topic;
+  const toolEl=$('q-tool');
+  if(q.tool){toolEl.textContent=q.tool;toolEl.classList.remove('hidden');}
+  else{toolEl.classList.add('hidden');}
+  const diffEl=$('q-diff');
+  diffEl.textContent=q.diff.charAt(0).toUpperCase()+q.diff.slice(1);
+  diffEl.className='q-diff '+q.diff;
+
+  $('q-count').textContent='Question '+(ST.cur+1)+' of '+QS.length;
+  $('q-pos').textContent=(ST.cur+1)+' / '+QS.length;
+
+  // Scenario snippet
+  const scEl=$('q-scenario');
+  if(q.scenario){scEl.textContent=q.scenario;scEl.classList.remove('hidden');}
+  else{scEl.classList.add('hidden');}
+
+  $('q-text').textContent=q.q;
+
+  // Options
+  const opts=$('q-opts');opts.innerHTML='';
+  q.o.forEach((o,i)=>{
+    const el=document.createElement('div');
+    el.className='opt'+(ST.answers[ST.cur]===i?' sel':'');
+    el.innerHTML='<span class="opt-letter">'+letters[i]+'</span><span>'+o+'</span>';
+    el.onclick=()=>{ST.answers[ST.cur]=i;renderQ();updateStats();};
+    opts.appendChild(el);
+  });
+
+  $('btn-prev').disabled=ST.cur===0;
+  $('btn-next').disabled=ST.cur===QS.length-1;
+  $('pbar').style.width=Math.round(((ST.cur+1)/QS.length)*100)+'%';
+  updateDots();
+}
+
+function updateStats(){
+  const n=ST.answers.filter(a=>a!==null).length;
+  $('ex-answered').textContent=n+' of 25 answered';
+}
+
+$('btn-prev').addEventListener('click',()=>{if(ST.cur>0){ST.cur--;renderQ();}});
+$('btn-next').addEventListener('click',()=>{if(ST.cur<QS.length-1){ST.cur++;renderQ();}});
+
+$('btn-submit-exam').addEventListener('click',()=>{
+  const u=ST.answers.filter(a=>a===null).length;
+  $('submit-msg').textContent='Are you sure? You cannot change answers after submission. '+(u>0?u+' question(s) still unanswered.':'All 25 questions answered — good work!');
+  $('modal-submit').classList.add('open');
+});
+$('btn-cancel-sub').addEventListener('click',()=>$('modal-submit').classList.remove('open'));
+$('btn-confirm-sub').addEventListener('click',()=>{$('modal-submit').classList.remove('open');doSubmit();});
+
+function startTimer(){
+  ST.tick=setInterval(()=>{
+    ST.sec--;
+    const m=Math.floor(ST.sec/60),s=ST.sec%60;
+    $('timer-val').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(ST.sec<=300)$('timer-val').style.color='var(--red)';
+    if(ST.sec<=0)doSubmit();
+  },1000);
+}
+
+function onVis(){
+  if(document.hidden){
+    ST.viols++;
+    $('viol-pill').innerHTML='<i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>'+ST.viols+' / 3 violations';
+    if(ST.viols>=3){doSubmit();return;}
+    $('viol-msg').textContent='You switched away from the exam. Violation #'+ST.viols+' recorded. '+(3-ST.viols)+' more will auto-submit your exam.';
+    $('modal-viol').classList.add('open');
+  }
+}
+$('btn-ack-viol').addEventListener('click',()=>$('modal-viol').classList.remove('open'));
+
+// ═══════════════════════════════════════════════════
+//  SUBMIT + RESULTS
+// ═══════════════════════════════════════════════════
+function doSubmit(){
+  clearInterval(ST.tick);
+  document.removeEventListener('visibilitychange',onVis);
+
+  const elapsed=Math.round((Date.now()-ST.startMs)/1000);
+  const em=Math.floor(elapsed/60),es=elapsed%60;
+  const correct=ST.answers.filter((a,i)=>a===QS[i].a).length;
+  const wrong=ST.answers.filter((a,i)=>a!==null&&a!==QS[i].a).length;
+  const skip=ST.answers.filter(a=>a===null).length;
+  const pct=Math.round((correct/QS.length)*100);
+  const pass=pct>=60;
+
+  // Hero
+  const badge=$('res-badge');
+  badge.className='r-badge '+(pass?'pass':'fail');
+  badge.innerHTML='<i class="ti ti-'+(pass?'check':'x')+'"></i> '+(pass?'Assessment Passed':'Below Pass Mark');
+  $('res-score').textContent=correct+' / '+QS.length;
+  $('res-score').style.color=pass?'var(--green)':'var(--red)';
+  $('res-pct').textContent=pct+'% — '+(pass?'PASSED ✓':'NOT PASSED');
+  $('rs-cor').textContent=correct;
+  $('rs-wro').textContent=wrong;
+  $('rs-ski').textContent=skip;
+
+  // Summary
+  $('rd-name').textContent=ST.candidate.name||'—';
+  $('rd-roll').textContent=ST.candidate.roll||'—';
+  $('rd-dept').textContent=ST.candidate.dept||'—';
+  $('rd-ans').textContent=ST.answers.filter(a=>a!==null).length+' / '+QS.length;
+  $('rd-viol').textContent=ST.viols;
+  $('rd-time').textContent=em+'m '+es+'s';
+  $('rd-result').textContent=pass?'PASSED':'NOT PASSED';
+  $('rd-result').style.color=pass?'var(--green)':'var(--red)';
+
+  // Breakdown by topic
+  const topics={};
+  QS.forEach((q,i)=>{
+    if(!topics[q.topic])topics[q.topic]={total:0,correct:0};
+    topics[q.topic].total++;
+    if(ST.answers[i]===q.a)topics[q.topic].correct++;
+  });
+  const bwrap=$('breakdown-rows');bwrap.innerHTML='';
+  Object.entries(topics).forEach(([t,v])=>{
+    const pct2=v.total>0?Math.round((v.correct/v.total)*100):0;
+    const row=document.createElement('div');
+    row.className='breakdown-row';
+    row.innerHTML='<span class="breakdown-topic">'+t+'</span>'
+      +'<div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:'+pct2+'%"></div></div>'
+      +'<span class="breakdown-score" style="color:'+(pct2>=60?'var(--green)':'var(--red)')+'">'+v.correct+'/'+v.total+'</span>';
+    bwrap.appendChild(row);
+  });
+
+  // Answer sheet
+  const letters=['A','B','C','D'];
+  const wrap=$('as-rows');wrap.innerHTML='';
+  QS.forEach((q,i)=>{
+    const r=document.createElement('div');r.className='as-row';
+    const a=ST.answers[i];
+    const tag=a===null?'<span class="tag tag-s">Skipped</span>':'<span class="tag tag-a">'+letters[a]+' &mdash; answered</span>';
+    r.innerHTML='<div class="as-num">'+(i+1)+'</div><div class="as-q">'+q.q.slice(0,75)+(q.q.length>75?'&hellip;':'')+'</div>'+tag;
+    wrap.appendChild(r);
+  });
+
+  show('sc-result');
+}
+</script>
+</body>
+</html>
